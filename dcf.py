@@ -43,7 +43,7 @@ class DCF:
         for i in range(self._period):
             curr_fcf = df_dcf.at['Free Cash Flow', i + 1] 
             df_dcf.at['Present Value of FCF', i + 1] = curr_fcf / (1 + wacc)**(i + 1)
-            return df_dcf
+        return df_dcf
 
     def share_price(self):
         df_dcf = self.dcf()
