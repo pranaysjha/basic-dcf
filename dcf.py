@@ -22,12 +22,12 @@ class DCF:
         pd.set_option('display.float_format', lambda x: '%.2f' % x)
 
     def prep(self):
-        op_cf = self._cash_flow.loc['Total Cash From Operating Activities']
-        capex = self._cash_flow.loc['Capital Expenditures']
+        op_cf = self._cash_flow.loc['Cash Flow From Continuing Operating Activities']
+        capex = self._cash_flow.loc['Capital Expenditure']
         # CapEx as % of operating cash flow
         pcnts_capex_op_cf = capex.multiply(-1).div(op_cf)
         avg_pcnt = pcnts_capex_op_cf.mean()
-        df_prep = self._cash_flow.loc[['Total Cash From Operating Activities']]
+        df_prep = self._cash_flow.loc[['Cash Flow From Continuing Operating Activities']]
         df_prep.loc['CapEx'] = capex.multiply(-1)
         for i in range(self._period):
             proj_op_cf = df_prep.iat[0, -1] * (1 + self._proj_growth[i])
@@ -52,7 +52,7 @@ class DCF:
         tv = (last_fcf * (1 + self._tgr)) / (wacc - self._tgr)
         pv_tv = tv / (1 + wacc)**(self._period)
         enterprise_value = df_dcf.loc['Present Value of FCF'].sum() + pv_tv
-        cash = self._balance_sheet.loc['Cash'][-1]
+        cash = self._balance_sheet.loc['Cash And Cash Equivalents'][-1]
         debt = self._balance_sheet.loc['Long Term Debt'][-1]
         equity_value = enterprise_value + cash - debt
         shares = self._info.get('sharesOutstanding')
@@ -68,22 +68,22 @@ class DCF:
     def wacc(self):
         # treasury yield for risk free rate
         tnx = yf.Ticker('^TNX')
-        rfr = tnx.info.get('previousClose') * 0.01
+        rfr = tnx.fast_info.previous_close * 0.01
         # beta
         b = self._info.get('beta')
         # equity risk premium
-        erp = 0.056
+        erp = 0.0594
 
         # calculate mean tax rate
-        taxes = self._financials.loc['Income Tax Expense'].abs()
-        ebit = self._financials.loc['Ebit']
+        taxes = self._cash_flow.loc['Deferred Income Tax'].abs()
+        ebit = self._financials.loc['EBIT']
         tax_rates = taxes.div(ebit)
         tc = tax_rates.mean()
 
         # calculate cost of equity
         cost_equity = rfr + b * (erp - rfr)
         # market value of equity (market capitalization)
-        e = self._info.get('marketCap')
+        e = self._ticker.fast_info.market_cap
 
         # calculate cost of debt
         interests = self._financials.loc['Interest Expense'].multiply(-1)
